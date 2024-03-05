@@ -1,0 +1,33 @@
+/* styles.css */
+table {
+  font-family: Arial, sans-serif;
+  border-collapse: collapse;
+  width: 100%;
+  max-width: 500px; /* Set a maximum width for the table */
+}
+
+th, td {
+  border: 1px solid #dddddd;
+  text-align: center;
+  padding: 4px; /* Decrease padding */
+  font-size: 12px; /* Decrease font size */
+}
+
+th {
+  background-color: #66c2a5; /* Color Brewer Paired scheme */
+  color: white;
+  width: 12.5%; /* Set a fixed width for each th cell to match the 8 columns */
+}
+
+tr:nth-child(even) {
+  background-color: #b3e2cd; /* Color Brewer Paired scheme */
+  color: white;
+}
+
+tr:hover {
+  background-color: #b2df8a; /* Color Brewer Paired scheme */
+  color: white;
+}
+
+
+

@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Supply Chain Cost in 2019-2020</title>
+    <style>
+        svg {
+            width: 1000px;
+            height: 800px;
+        }
+
+        .axis text {
+            font-family: sans-serif;
+            font-weight: bold;
+            font-size: 10pt;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: black;
+            shape-rendering: crispEdges;
+        }
+
+        .EstimatedCost {
+            stroke-width: 2px;
+            stroke: #1b9e77; /* Color Brewer Dark2 color 1 */
+            fill: none;
+        }
+
+        .ActualCost {
+            stroke-width: 2px;
+            stroke: #d95f02; /* Color Brewer Dark2 color 2 */
+            fill: none;
+        }
+
+        .SoldPrice {
+            stroke-width: 2px;
+            stroke: #7570b3; /* Color Brewer Dark2 color 3 */
+            fill: none;
+        }
+
+        .MarginOfProfit {
+            stroke-width: 2px;
+            stroke: #e7298a; /* Color Brewer Dark2 color 4 */
+            fill: none;
+        }
+
+        .legend {
+            font-family: sans-serif;
+            font-size: 12pt;
+            text-anchor: start;
+        }
+
+        .legend rect {
+            width: 20px;
+            height: 10px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+    </style>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+
+<body>
+    <div id="graph"></div>
+    <script>
+        const svg = d3.select("#graph").append("svg");
+
+        // Load data from data_sam.html
+        fetch('https://raw.githubusercontent.com/MokshithaSidde/Dv_Major_assignment/main/data_sam.html')
+            .then(response => response.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const tableRows = doc.querySelectorAll('table.dataframe tbody tr');
+                const data = [];
+
+                tableRows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    const rowData = {
+                        date: new Date(cells[0].textContent),
+                        estimatedCost: parseFloat(cells[1].textContent),
+                        rawMaterial: parseFloat(cells[2].textContent),
+                        workmanship: parseFloat(cells[3].textContent),
+                        storageCost: parseFloat(cells[4].textContent),
+                        actualCost: parseFloat(cells[5].textContent),
+                        soldPrice: parseFloat(cells[6].textContent),
+                        marginOfProfit: parseFloat(cells[7].textContent)
+                    };
+                    data.push(rowData);
+                });
+
+                const width = 1000;
+                const height = 800;
+                const margins = { top: 60, bottom: 80, left: 60, right: 160 };
+
+                const xScale = d3.scaleTime()
+                    .domain(d3.extent(data, d => d.date))
+                    .range([margins.left, width - margins.right]);
+
+                const yMin = d3.min(data, d => Math.min(d.estimatedCost, d.actualCost, d.soldPrice, d.marginOfProfit));
+                const yMax = d3.max(data, d => Math.max(d.estimatedCost, d.actualCost, d.soldPrice, d.marginOfProfit));
+
+                const yScale = d3.scaleLinear()
+                    .domain([Math.min(yMin, 0), Math.max(yMax, 0)])
+                    .nice()
+                    .range([height - margins.bottom, margins.top]);
+
+                const xAxis = d3.axisBottom(xScale)
+                    .tickFormat(d3.timeFormat("%d %b %Y")) // Format to show full date
+                    .ticks(d3.timeMonth.every(1)) // Show every month
+                    .tickSize(5); // Hide ticks
+                const yAxis = d3.axisLeft(yScale)
+                    .tickSize(5); // Hide ticks
+
+                svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", `translate(0, ${height - margins.bottom})`)
+                    .call(xAxis)
+                    .selectAll("text")
+                    .attr("dy", "0.5em") // Adjust label position
+                    .style("text-anchor", "end") // Align to end of label
+                    .attr("transform", "rotate(-45)"); // Rotate labels
+
+                svg.append("g")
+                    .attr("class", "axis")
+                    .attr("transform", `translate(${margins.left}, 0)`)
+                    .call(yAxis);
+
+                const lineGen = d3.line()
+                    .x(d => xScale(d.date))
+                    .y(d => yScale(d.estimatedCost));
+
+                svg.append("path")
+                    .datum(data)
+                    .attr("class", "EstimatedCost")
+                    .attr("d", lineGen);
+
+                svg.selectAll(".point-estimated")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("class", "point-estimated")
+                    .attr("cx", d => xScale(d.date))
+                    .attr("cy", d => yScale(d.estimatedCost))
+                    .attr("r", 4)
+                    .style("fill", "#1b9e77"); // Color Brewer Dark2 color 1
+
+                const lineGenActual = d3.line()
+                    .x(d => xScale(d.date))
+                    .y(d => yScale(d.actualCost));
+
+                svg.append("path")
+                    .datum(data)
+                    .attr("class", "ActualCost")
+                    .attr("d", lineGenActual);
+
+                svg.selectAll(".point-actual")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("class", "point-actual")
+                    .attr("cx", d => xScale(d.date))
+                    .attr("cy", d => yScale(d.actualCost))
+                    .attr("r", 4)
+                    .style("fill", "#d95f02"); // Color Brewer Dark2 color 2
+
+                const lineGenSold = d3.line()
+                    .x(d => xScale(d.date))
+                    .y(d => yScale(d.soldPrice));
+
+                svg.append("path")
+                    .datum(data)
+                    .attr("class", "SoldPrice")
+                    .attr("d", lineGenSold);
+
+                svg.selectAll(".point-sold")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("class", "point-sold")
+                    .attr("cx", d => xScale(d.date))
+                    .attr("cy", d => yScale(d.soldPrice))
+                    .attr("r", 4)
+                    .style("fill", "#7570b3"); // Color Brewer Dark2 color 3
+
+                const lineGenMargin = d3.line()
+                    .x(d => xScale(d.date))
+                    .y(d => yScale(d.marginOfProfit));
+
+                svg.append("path")
+                    .datum(data)
+                    .attr("class", "MarginOfProfit")
+                    .attr("d", lineGenMargin);
+
+                svg.selectAll(".point-margin")
+                    .data(data)
+                    .enter().append("circle")
+                    .attr("class", "point-margin")
+                    .attr("cx", d => xScale(d.date))
+                    .attr("cy", d => yScale(d.marginOfProfit))
+                    .attr("r", 4)
+                    .style("fill", "#e7298a"); // Color Brewer Dark2 color 4
+
+                // Add legend
+                const legend = svg.append("g")
+                    .attr("class", "legend")
+                    .attr("transform", `translate(${width - margins.right + 10}, 10)`);
+
+                const legendItems = [
+                    { color: "#1b9e77", text: "Estimated Cost" },
+                    { color: "#d95f02", text: "Actual Cost" },
+                    { color: "#7570b3", text: "Sold Price" },
+                    { color: "#e7298a", text: "Margin of Profit" }
+                ];
+
+                legend.selectAll("rect")
+                    .data(legendItems)
+                    .enter().append("rect")
+                    .attr("x", 0)
+                    .attr("y", (d, i) => i * 20)
+                    .attr("width", 20)
+                    .attr("height", 10)
+                    .attr("fill", d => d.color);
+
+                legend.selectAll("text")
+                    .data(legendItems)
+                    .enter().append("text")
+                    .attr("x", 30)
+                    .attr("y", (d, i) => i * 20 + 9)
+                    .text(d => d.text);
+            });
+
+    </script>
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
